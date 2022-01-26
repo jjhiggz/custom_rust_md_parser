@@ -1,7 +1,9 @@
 # Intro
 
-Don't use this library please. It's probably about to be the worst markdown parser in history, but its mainly just to learn rust. 
+Don't use this library please. It's probably about to be the worst markdown parser in history, but its mainly just to learn rust.
 
+
+# Scripts
 
 ## Scope
 
@@ -44,4 +46,6 @@ should render this html
 
 
 
-# Regular Text
+## Regular Text
+
+

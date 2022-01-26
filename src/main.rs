@@ -1,4 +1,48 @@
+use core::fmt;
 use std::fmt::Display;
+
+#[allow(dead_code)]
+enum Tag {
+    Div,
+    H1,
+    H2,
+    H3,
+    H4,
+    Ol,
+    Ul,
+    P,
+}
+
+impl Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            &Tag::Div => {
+                write!(f, "{}", "div")
+            }
+            Tag::H1 => {
+                write!(f, "{}", "h1")
+            }
+            Tag::H2 => {
+                write!(f, "{}", "h2")
+            }
+            Tag::H3 => {
+                write!(f, "{}", "h3")
+            }
+            Tag::H4 => {
+                write!(f, "{}", "h4")
+            }
+            Tag::Ol => {
+                write!(f, "{}", "h3")
+            }
+            Tag::Ul => {
+                write!(f, "{}", "ul")
+            }
+            Tag::P => {
+                write!(f, "{}", "p")
+            }
+        }
+    }
+}
 
 enum Content {
     InnerText(String),
@@ -8,12 +52,19 @@ enum Content {
 #[allow(dead_code)]
 struct Node {
     content: Vec<Content>,
-    tag_name: String,
+    tag_name: Tag,
     class_list: ClassList,
     id: String,
 }
 
 struct ClassList(Vec<String>);
+
+fn optional_attr(attr_label: String, attr_value: String) -> String {
+    if attr_value.len() == 0 {
+        return "".to_string();
+    }
+    return format!(" {}=\"{}\"", attr_label, attr_value);
+}
 
 impl Display for ClassList {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -27,13 +78,6 @@ impl Display for ClassList {
             }
         )
     }
-}
-
-fn optional_attr(attr_label: String, attr_value: String) -> String {
-    if attr_value.len() == 0 {
-        return "".to_string();
-    }
-    return format!(" {}=\"{}\"", attr_label, attr_value);
 }
 
 impl Display for Content {
@@ -66,7 +110,7 @@ impl Display for Node {
 
 fn main() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["header".to_string(), "baller".to_string()]),
         id: "".to_string(),
@@ -75,10 +119,17 @@ fn main() {
     println!("{}", header)
 }
 
+//  _____   _____   _____   _____   _____
+// |_   _| |  ___| /  ___| |_   _| /  ___|
+//   | |   | |__   \ `--.    | |   \ `--.
+//   | |   |  __|   `--. \   | |    `--. \
+//   | |   | |___  /\__/ /   | |   /\__/ /
+//   \_/   \____/  \____/    \_/   \____/
+
 #[test]
 fn try_header() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec![]),
         id: "".to_string(),
@@ -97,7 +148,7 @@ fn with_classlist() {
 #[test]
 fn node_with_classlist() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["class-1".to_string(), "class-2".to_string()]),
         id: "".to_string(),
@@ -110,7 +161,7 @@ fn node_with_classlist() {
 #[test]
 fn node_with_id() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec![]),
         id: "header-1".to_string(),
@@ -123,7 +174,7 @@ fn node_with_id() {
 #[test]
 fn node_with_classlist_and_id() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["class-1".to_string(), "class-2".to_string()]),
         id: "header-1".to_string(),
@@ -139,7 +190,7 @@ fn node_with_classlist_and_id() {
 #[test]
 fn node_with_nested_node() {
     let header = Node {
-        tag_name: "h1".to_string(),
+        tag_name: Tag::H1,
         content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec![]),
         id: "header-1".to_string(),
@@ -147,7 +198,7 @@ fn node_with_nested_node() {
 
     let div = Node {
         content: vec![Content::InnerContent(header)],
-        tag_name: "div".to_string(),
+        tag_name: Tag::Div,
         class_list: ClassList(vec![]),
         id: "".to_string(),
     };

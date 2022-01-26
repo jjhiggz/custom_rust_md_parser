@@ -1,9 +1,13 @@
 use std::fmt::Display;
 
+enum Content {
+    InnerText(String),
+    InnerContent(Node),
+}
+
 #[allow(dead_code)]
 struct Node {
-    inner_content: Box<Vec<Node>>,
-    inner_text: String,
+    content: Vec<Content>,
     tag_name: String,
     class_list: ClassList,
     id: String,
@@ -25,39 +29,45 @@ impl Display for ClassList {
     }
 }
 
+fn optional_attr(attr_label: String, attr_value: String) -> String {
+    if attr_value.len() == 0 {
+        return "".to_string();
+    }
+    return format!(" {}=\"{}\"", attr_label, attr_value);
+}
+
+impl Display for Content {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self {
+            &Content::InnerContent(node) => {
+                write!(f, "{}", format!("{}", node))
+            }
+            &Content::InnerText(text) => {
+                write!(f, "{}", format!("{}", text))
+            }
+        }
+    }
+}
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let show_class = self.class_list.0.len() > 0;
-        let show_id = self.id.len() > 0;
-
         write!(
             f,
-            "<{tag_name}{id_tag}{id}{id_close}{class_tag}{class_list}{class_close}>{inner_text}</{tag_name}>",
+            r#"<{tag_name}{id_tag}{class_tag}>{inner_content}</{tag_name}>"#,
             tag_name = self.tag_name,
-            inner_text = self.inner_text,
-            class_tag = if show_class {
-                " class=\"".to_string()
-            } else {
-                "".to_string()
-            },
-            class_close = if show_class { "\"" } else { "" },
-            class_list = self.class_list,
-            id_tag = if show_id {
-                " id=\"".to_string()
-            } else {
-                "".to_string()
-            },
-            id_close = if show_id { "\"" } else { "" },
-            id = self.id,
+            class_tag = optional_attr("class".to_string(), format!("{}", self.class_list)),
+            id_tag = optional_attr("id".to_string(), format!("{}", self.id)),
+            inner_content = self
+                .content
+                .iter()
+                .fold("".to_string(), |acc, node| { acc + &format!("{}", node) })
         )
     }
 }
 
 fn main() {
     let header = Node {
-        inner_content: Box::new(vec![]),
         tag_name: "h1".to_string(),
-        inner_text: "My Header".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["header".to_string(), "baller".to_string()]),
         id: "".to_string(),
     };
@@ -68,9 +78,8 @@ fn main() {
 #[test]
 fn try_header() {
     let header = Node {
-        inner_content: Box::new(vec![]),
         tag_name: "h1".to_string(),
-        inner_text: "My Header".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec![]),
         id: "".to_string(),
     };
@@ -88,9 +97,8 @@ fn with_classlist() {
 #[test]
 fn node_with_classlist() {
     let header = Node {
-        inner_content: Box::new(vec![]),
         tag_name: "h1".to_string(),
-        inner_text: "My Header".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["class-1".to_string(), "class-2".to_string()]),
         id: "".to_string(),
     };
@@ -102,9 +110,8 @@ fn node_with_classlist() {
 #[test]
 fn node_with_id() {
     let header = Node {
-        inner_content: Box::new(vec![]),
         tag_name: "h1".to_string(),
-        inner_text: "My Header".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec![]),
         id: "header-1".to_string(),
     };
@@ -116,9 +123,8 @@ fn node_with_id() {
 #[test]
 fn node_with_classlist_and_id() {
     let header = Node {
-        inner_content: Box::new(vec![]),
         tag_name: "h1".to_string(),
-        inner_text: "My Header".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
         class_list: ClassList(vec!["class-1".to_string(), "class-2".to_string()]),
         id: "header-1".to_string(),
     };
@@ -130,22 +136,22 @@ fn node_with_classlist_and_id() {
     )
 }
 
-#[allow(dead_code)]
-enum MyOptions {
-    A,
-    RGB(i32, i32, i32),
-    C,
-}
+#[test]
+fn node_with_nested_node() {
+    let header = Node {
+        tag_name: "h1".to_string(),
+        content: vec![Content::InnerText("My Header".to_string())],
+        class_list: ClassList(vec![]),
+        id: "header-1".to_string(),
+    };
 
-#[allow(dead_code)]
-fn choose_option(choice: MyOptions) {
-    match choice {
-        MyOptions::A => {}
-        MyOptions::RGB(a, b, c) => {
-            println!("{}{}{}", a, b, c)
-        }
-        _ => {
-            println! {}
-        }
-    }
+    let div = Node {
+        content: vec![Content::InnerContent(header)],
+        tag_name: "div".to_string(),
+        class_list: ClassList(vec![]),
+        id: "".to_string(),
+    };
+
+    let printed = format!("{}", div);
+    assert_eq!(printed, "<div><h1 id=\"header-1\">My Header</h1></div>")
 }

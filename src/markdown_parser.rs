@@ -5,6 +5,9 @@ use std::fmt::Display;
 
 use regex::Regex;
 
+use crate::node::{ClassList, Content, Node, Tag};
+
+#[derive(Clone)]
 pub enum MarkDownLineType {
     H1,
     H2,
@@ -23,6 +26,7 @@ fn split_by_newline(input: String) -> Vec<String> {
         .collect()
 }
 
+#[derive(Clone)]
 struct MarkdownLine {
     indent: i32,
     line_type: MarkDownLineType,
@@ -30,6 +34,74 @@ struct MarkdownLine {
 }
 
 impl MarkdownLine {
+    fn assign_node(md_line: MarkdownLine) -> Node {
+        match md_line.line_type {
+            MarkDownLineType::H1 => Node {
+                class_list: ClassList(vec!["md-h1-container".to_string()]),
+                content: vec![
+                    Content::InnerContent(Node {
+                        class_list: ClassList(vec!["md-h1".to_string()]),
+                        id: "".to_string(),
+                        content: vec![Content::InnerText(md_line.content)], // tag_name: Tag::H1,
+                        tag_name: Tag::H1,
+                    }),
+                    Content::InnerContent(Node {
+                        class_list: ClassList(vec!["md-hr".to_string()]),
+                        id: "".to_string(),
+                        content: vec![Content::InnerText("".to_string())], // tag_name: Tag::H1,
+                        tag_name: Tag::Hr,
+                    }),
+                ],
+                id: "".to_string(),
+                tag_name: Tag::Div,
+            },
+            MarkDownLineType::H2 => Node {
+                class_list: ClassList(vec!["md-h2".to_string()]),
+                content: vec![Content::InnerText(md_line.content)],
+                id: "".to_string(),
+                tag_name: Tag::H2,
+            },
+            MarkDownLineType::H3 => Node {
+                class_list: ClassList(vec!["md-h3".to_string()]),
+                content: vec![Content::InnerText(md_line.content)],
+                id: "".to_string(),
+                tag_name: Tag::H3,
+            },
+            MarkDownLineType::H4 => Node {
+                class_list: ClassList(vec!["md-h4".to_string()]),
+                content: vec![Content::InnerText(md_line.content)],
+                id: "".to_string(),
+                tag_name: Tag::H4,
+            },
+            MarkDownLineType::Li => Node {
+                class_list: ClassList(vec!["md-li".to_string()]),
+                content: vec![Content::InnerText(md_line.content)],
+                id: "".to_string(),
+                tag_name: Tag::Li,
+            },
+            MarkDownLineType::NoTag => Node {
+                class_list: ClassList(vec!["md-p".to_string()]),
+                content: vec![Content::InnerText(md_line.content)],
+                id: "".to_string(),
+                tag_name: Tag::P,
+            },
+            MarkDownLineType::EmptyLine => Node {
+                class_list: ClassList(vec!["md-empty-line".to_string()]),
+                content: vec![Content::InnerText("".to_string())],
+                id: "".to_string(),
+                tag_name: Tag::Div,
+            },
+        }
+    }
+
+    fn create_node_list(lines: String) -> Vec<Node> {
+        let md_lines = MarkdownLine::get_md_lines(lines);
+        md_lines
+            .iter()
+            .map(|md_line| MarkdownLine::assign_node(md_line.clone()))
+            .collect()
+    }
+
     fn get_indent(line: String) -> i32 {
         let first_char_position = line
             .split("")
@@ -397,12 +469,10 @@ mod tests {
             MarkDownLineType::H2 => true,
             _ => false,
         });
-
         assert!(match blank2.line_type {
             MarkDownLineType::EmptyLine => true,
             _ => false,
         });
-
         assert!(match item_1.line_type {
             MarkDownLineType::Li => true,
             _ => false,
@@ -411,5 +481,15 @@ mod tests {
             MarkDownLineType::Li => true,
             _ => false,
         });
+    }
+
+    #[test]
+    fn testNodePrint() {
+        let test_file = fs::read_to_string("./src/data/md-test-file-1.md").unwrap();
+        let nodes = MarkdownLine::create_node_list(test_file);
+        for node in nodes {
+            println!("{}", node);
+        }
+        assert!(false);
     }
 }

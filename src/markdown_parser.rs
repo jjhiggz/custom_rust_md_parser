@@ -2,14 +2,8 @@
 
 use core::slice;
 use std::fmt::Display;
-// use math::round::floor
 
 use regex::Regex;
-
-struct MarkDownGroup {
-    line_count: i32,
-    structure: MarkDownStructureType,
-}
 
 pub enum MarkDownLineType {
     H1,
@@ -21,14 +15,12 @@ pub enum MarkDownLineType {
     EmptyLine,
 }
 
-pub enum MarkDownStructureType {
-    H1,
-    H2,
-    H3,
-    H4,
-    Ol,
-    Ul,
-    Li,
+fn split_by_newline(input: String) -> Vec<String> {
+    input
+        .split("\n")
+        .filter(|&s| s.trim() != "")
+        .map(|s| s.trim().to_string())
+        .collect()
 }
 
 struct MarkdownLine {
@@ -47,6 +39,13 @@ impl MarkdownLine {
             Some(n) => (n / 4) as i32,
             None => -1,
         }
+    }
+
+    fn get_md_lines(lines: String) -> Vec<MarkdownLine> {
+        lines
+            .split("\n")
+            .map(|line| MarkdownLine::parse(line.to_string()))
+            .collect()
     }
 
     fn get_header_tag(first_non_tag_char_pos: i32) -> MarkDownLineType {
@@ -105,7 +104,7 @@ impl MarkdownLine {
 
     fn get_content(line: String, line_type: &MarkDownLineType, indent: i32) -> String {
         let len = line.len();
-        if (indent == 0) {
+        if indent == 0 {
             return match &line_type {
                 MarkDownLineType::H1 => line[2..len].to_string(),
                 MarkDownLineType::H2 => line[3..len].to_string(),
@@ -148,14 +147,6 @@ impl MarkdownLine {
             line_type: tag,
         };
     }
-}
-
-fn split_by_newline(input: String) -> Vec<String> {
-    input
-        .split("\n")
-        .filter(|&s| s.trim() != "")
-        .map(|s| s.trim().to_string())
-        .collect()
 }
 
 mod tests {
@@ -371,44 +362,54 @@ mod tests {
         });
     }
 
-    // #[test]
-    // fn markdown_line_parse_simple_h1() {
-    //     // let test_data = md_test_file_1();
-    //     let parsed_header = MarkdownLine::parse("# header".to_string());
-    //     assert_eq!(parsed_header.content, "header".to_string());
-    //     assert!(match parsed_header.line_type {
-    //         MarkDownLineType::H1 => true,
-    //         _ => false,
-    //     });
-    //     assert_eq!(parsed_header.indent, 0);
+    #[test]
+    fn get_md_lines() {
+        let test_file = fs::read_to_string("./src/data/md-test-file-1.md").unwrap();
+        let md_lines = MarkdownLine::get_md_lines(test_file);
 
-    //     println!("{}", parsed_header.content);
-    // }
+        let header = &md_lines[0];
+        let blank1 = &md_lines[1];
+        let my_other_header = &md_lines[2];
+        let blank2 = &md_lines[3];
+        let item_1 = &md_lines[4];
+        let item_2 = &md_lines[5];
 
-    // #[test]
-    // fn markdown_line_parse_simple_h2() {
-    //     // let test_data = md_test_file_1();
-    //     let parsed_header = MarkdownLine::parse("## header".to_string());
-    //     assert_eq!(parsed_header.content, "header".to_string());
-    //     assert!(match parsed_header.line_type {
-    //         MarkDownLineType::H2 => true,
-    //         _ => false,
-    //     });
-    //     assert_eq!(parsed_header.indent, 0);
+        // make sure content is correct
+        assert!(header.content == "My Header");
+        assert!(blank1.content == "");
+        assert!(my_other_header.content == "My Other Header");
+        assert!(blank2.content == "");
+        assert!(item_1.content == "item1");
+        assert!(item_2.content == "item2");
 
-    //     println!("{}", parsed_header.content);
-    // }
+        // make sure types are correct
+        assert!(match header.line_type {
+            MarkDownLineType::H1 => true,
+            _ => false,
+        });
 
-    // #[test]
-    // fn markdown_line_parse_simple_untagged() {
-    //     let parsed_header = MarkdownLine::parse("This is not a tag".to_string());
-    //     assert!(match parsed_header.line_type {
-    //         MarkDownLineType::NoTag => true,
-    //         _ => false,
-    //     });
+        assert!(match blank1.line_type {
+            MarkDownLineType::EmptyLine => true,
+            _ => false,
+        });
 
-    //     assert_eq!(parsed_header.indent, 0);
+        assert!(match my_other_header.line_type {
+            MarkDownLineType::H2 => true,
+            _ => false,
+        });
 
-    //     println!("{}", parsed_header.content);
-    // }
+        assert!(match blank2.line_type {
+            MarkDownLineType::EmptyLine => true,
+            _ => false,
+        });
+
+        assert!(match item_1.line_type {
+            MarkDownLineType::Li => true,
+            _ => false,
+        });
+        assert!(match item_2.line_type {
+            MarkDownLineType::Li => true,
+            _ => false,
+        });
+    }
 }

@@ -1,6 +1,5 @@
 mod markdown_parser;
 mod node;
-mod square_thing;
 use node::{ClassList, Content, Node, Tag};
 fn main() {
     let header = Node {

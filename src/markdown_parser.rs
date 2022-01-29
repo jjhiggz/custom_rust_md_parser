@@ -16,20 +16,9 @@ pub enum MarkDownLineType {
     H2,
     H3,
     H4,
+    Li,
     NoTag,
     EmptyLine,
-}
-
-impl MarkDownLineType {
-    pub fn assign_line_type(tag: &str) -> MarkDownLineType {
-        match tag {
-            "#" => MarkDownLineType::H1,
-            "##" => MarkDownLineType::H2,
-            "###" => MarkDownLineType::H3,
-            "####" => MarkDownLineType::H4,
-            _ => MarkDownLineType::NoTag,
-        }
-    }
 }
 
 pub enum MarkDownStructureType {
@@ -60,8 +49,17 @@ impl MarkdownLine {
         }
     }
 
+    fn get_header_tag(first_non_tag_char_pos: i32) -> MarkDownLineType {
+        match first_non_tag_char_pos {
+            2 => MarkDownLineType::H1,
+            3 => MarkDownLineType::H2,
+            4 => MarkDownLineType::H3,
+            5 => MarkDownLineType::H4,
+            _ => MarkDownLineType::NoTag,
+        }
+    }
+
     fn get_tag(line: String, indent: i32) -> MarkDownLineType {
-        println!("{}", line);
         if indent == -1 {
             return MarkDownLineType::EmptyLine;
         };
@@ -72,11 +70,12 @@ impl MarkdownLine {
 
         let trimmed = line.trim();
         let split = trimmed.split("");
-        let first_non_pound_regex = Regex::new(r"[^#]").unwrap();
+        let first_tag_regex = Regex::new(r"[#|-]").unwrap();
+        let first_tag_position = split.clone().position(|x| first_tag_regex.is_match(x));
+        let first_tag = split.clone().find(|x| first_tag_regex.is_match(x));
 
-        let first_non_tag_char_pos = split
-            .clone()
-            .position(|x| first_non_pound_regex.is_match(x));
+        let first_non_tag_regex = Regex::new(r"[^#|^-]").unwrap();
+        let first_non_tag_char_pos = split.clone().position(|x| first_non_tag_regex.is_match(x));
 
         if first_non_tag_char_pos == None {
             return MarkDownLineType::NoTag;
@@ -87,31 +86,48 @@ impl MarkdownLine {
         match first_non_tag_char {
             None => return MarkDownLineType::EmptyLine,
             Some(char) => {
-                println!("-{}-", char);
                 if char.to_string() != " ".to_string() {
                     return MarkDownLineType::NoTag;
                 }
             }
         };
 
-        match first_non_tag_char_pos.unwrap() {
-            2 => MarkDownLineType::H1,
-            3 => MarkDownLineType::H2,
-            4 => MarkDownLineType::H3,
-            5 => MarkDownLineType::H4,
-            _ => MarkDownLineType::NoTag,
+        if first_tag.unwrap() == "#" {
+            return MarkdownLine::get_header_tag(first_non_tag_char_pos.unwrap() as i32);
+        } else {
+            let second_hyphen = trimmed.chars().nth(first_tag_position.unwrap() as usize);
+            if second_hyphen == Some('-') {
+                return MarkDownLineType::NoTag;
+            }
+            return MarkDownLineType::Li;
         }
     }
 
-    fn get_content(line: String, line_type: &MarkDownLineType) -> String {
+    fn get_content(line: String, line_type: &MarkDownLineType, indent: i32) -> String {
         let len = line.len();
-        match &line_type {
-            MarkDownLineType::H1 => line[2..len].to_string(),
-            MarkDownLineType::H2 => line[3..len].to_string(),
-            MarkDownLineType::H3 => line[4..len].to_string(),
-            MarkDownLineType::H4 => line[5..len].to_string(),
-            _ => line,
+        if (indent == 0) {
+            return match &line_type {
+                MarkDownLineType::H1 => line[2..len].to_string(),
+                MarkDownLineType::H2 => line[3..len].to_string(),
+                MarkDownLineType::H3 => line[4..len].to_string(),
+                MarkDownLineType::H4 => line[5..len].to_string(),
+                MarkDownLineType::Li => line[2..len].to_string(),
+                _ => line,
+            };
         }
+        if indent != 0 {
+            let starting_index = 2 + 4 * indent as usize;
+            println!("indent{}", indent);
+            println!("starting index {}", starting_index);
+            return match &line_type {
+                MarkDownLineType::Li => {
+                    println!("is li");
+                    line[starting_index..len].to_string()
+                }
+                _ => line,
+            };
+        }
+        unreachable!()
     }
 
     pub fn parse(line: String) -> MarkdownLine {
@@ -124,7 +140,7 @@ impl MarkdownLine {
             };
         };
         let tag = MarkdownLine::get_tag(line.clone(), indent);
-        let content = MarkdownLine::get_content(line, &tag);
+        let content = MarkdownLine::get_content(line, &tag, indent);
 
         return MarkdownLine {
             content: content,
@@ -233,18 +249,65 @@ mod tests {
             MarkDownLineType::NoTag => true,
             _ => false,
         });
+
+        let line = "- ".to_string();
+        let indent = 0;
+        let tag = MarkdownLine::get_tag(line, indent);
+
+        assert!(match tag {
+            MarkDownLineType::NoTag => true,
+            _ => false,
+        });
+
+        let line = "- bullet".to_string();
+        let indent = 0;
+        let tag = MarkdownLine::get_tag(line, indent);
+
+        assert!(match tag {
+            MarkDownLineType::Li => true,
+            _ => false,
+        });
+
+        let line = "-- bullet".to_string();
+        let indent = 0;
+        let tag = MarkdownLine::get_tag(line, indent);
+
+        assert!(match tag {
+            MarkDownLineType::NoTag => true,
+            _ => false,
+        });
+
+        let line = "--- bullet".to_string();
+        let indent = 0;
+        let tag = MarkdownLine::get_tag(line, indent);
+
+        assert!(match tag {
+            MarkDownLineType::NoTag => true,
+            _ => false,
+        });
+
+        let line = "- my bullet".to_string();
+        let indent = 0;
+        let tag = MarkdownLine::get_tag(line, indent);
+
+        assert!(match tag {
+            MarkDownLineType::Li => true,
+            _ => false,
+        });
     }
 
     #[test]
     fn get_content() {
         let line = "# header".to_string();
         let line_type = MarkDownLineType::H1;
-        let content = MarkdownLine::get_content(line, &line_type);
+        let indent = 0;
+        let content = MarkdownLine::get_content(line, &line_type, indent);
         assert_eq!(content, "header");
 
         let line = "## header".to_string();
         let line_type = MarkDownLineType::H2;
-        let content = MarkdownLine::get_content(line, &line_type);
+        let indent = 0;
+        let content = MarkdownLine::get_content(line, &line_type, indent);
         assert_eq!(content, "header");
     }
 
@@ -294,6 +357,16 @@ mod tests {
         assert_eq!(md_line.indent, -1);
         assert!(match md_line.line_type {
             MarkDownLineType::EmptyLine => true,
+            _ => false,
+        });
+
+        let line = "- mybullet".to_string();
+        let md_line = MarkdownLine::parse(line);
+
+        assert_eq!(md_line.content, "mybullet".to_string());
+        assert_eq!(md_line.indent, 0);
+        assert!(match md_line.line_type {
+            MarkDownLineType::Li => true,
             _ => false,
         });
     }

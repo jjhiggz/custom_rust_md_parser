@@ -5,9 +5,3 @@
 ## My Other Header
 
 - item1
-
-
-
-- 
-- 
-- 

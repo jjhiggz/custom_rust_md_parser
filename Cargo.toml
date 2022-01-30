@@ -85,3 +85,4 @@ rustflags = [
 
 [dependencies]
 regex = "1"
+cargo-watch = "8.1.1"

@@ -106,6 +106,21 @@ pub struct Node {
     pub id: String,
 }
 
+pub struct NodeList(pub Vec<Node>);
+
+impl std::fmt::Display for NodeList {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let node_vec = &self.0;
+        let mut print_string = vec![];
+
+        for node in node_vec {
+            print_string.push(format!("{}", node))
+        }
+
+        write!(f, "{}", print_string.join("\n"))
+    }
+}
+
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(

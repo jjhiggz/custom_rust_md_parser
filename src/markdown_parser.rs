@@ -1,11 +1,11 @@
 #![allow(unused_imports, dead_code)]
 
 use core::slice;
-use std::fmt::Display;
+use std::fmt::{format, Display};
 
 use regex::Regex;
 
-use crate::node::{ClassList, Content, Node, Tag};
+use crate::node::{ClassList, Content, Node, NodeList, Tag};
 
 #[derive(Clone)]
 pub enum MarkDownLineType {
@@ -27,7 +27,7 @@ fn split_by_newline(input: String) -> Vec<String> {
 }
 
 #[derive(Clone)]
-struct MarkdownLine {
+pub struct MarkdownLine {
     indent: i32,
     line_type: MarkDownLineType,
     content: String,
@@ -94,12 +94,18 @@ impl MarkdownLine {
         }
     }
 
-    fn create_node_list(lines: String) -> Vec<Node> {
+    pub fn create_node_list(lines: String) -> NodeList {
         let md_lines = MarkdownLine::get_md_lines(lines);
-        md_lines
+        let node_vec = md_lines
             .iter()
             .map(|md_line| MarkdownLine::assign_node(md_line.clone()))
-            .collect()
+            .collect();
+
+        NodeList(node_vec)
+    }
+
+    pub fn parse_markdown_to_html(lines: String) -> String {
+        format!("{}", MarkdownLine::create_node_list(lines))
     }
 
     fn get_indent(line: String) -> i32 {
@@ -484,12 +490,10 @@ mod tests {
     }
 
     #[test]
-    fn testNodePrint() {
-        let test_file = fs::read_to_string("./src/data/md-test-file-1.md").unwrap();
-        let nodes = MarkdownLine::create_node_list(test_file);
-        for node in nodes {
-            println!("{}", node);
-        }
-        assert!(false);
+    fn test_markdown_parser() {
+        let test_file = fs::read_to_string("./src/data/overall-test-file.md").unwrap();
+        let test_html_file = fs::read_to_string("./src/data/overall-test-file.html").unwrap();
+        let val = MarkdownLine::parse_markdown_to_html(test_file);
+        assert_eq!(val, test_html_file)
     }
 }
